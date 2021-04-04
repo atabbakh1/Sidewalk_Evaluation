@@ -14,6 +14,8 @@ namespace Sidewalk_Evaluation
 {
     public class TreesComponent : GH_Component
     {
+
+        //a list of the five NYC borough for tree population options
         private string[] NYC_BOROUGHS = new string[] {"Manhattan", "Queens", "Brooklyn", "Bronx", "Staten Island" };
 
 
@@ -48,6 +50,7 @@ namespace Sidewalk_Evaluation
                                                           "3 = Bronx \n" +
                                                           "4 = Staten Island", GH_ParamAccess.item, 0);
 
+            //embed the borough options in the menu item of the component 
             Param_Integer param = pManager[5] as Param_Integer;
             for(int i=0; i< NYC_BOROUGHS.Length; i++)
             {

@@ -18,6 +18,7 @@ namespace Sidewalk_Evaluation.Utility
         public static string[] RetreiveCSVData(string filePath)
         {
             string[] csvDataLines = System.IO.File.ReadAllLines(filePath);
+            //skip the header line
             return csvDataLines.Skip(0).ToArray();
         }
 

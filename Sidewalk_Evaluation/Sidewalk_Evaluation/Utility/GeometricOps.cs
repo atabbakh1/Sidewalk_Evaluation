@@ -1,11 +1,8 @@
-﻿using System;
+﻿using Rhino.Geometry;
+using Rhino;
+using System.Diagnostics;
+using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Grasshopper.Kernel;
-using Rhino.Geometry;
-
 namespace Sidewalk_Evaluation.Utility
 {
     class GeometricOps
@@ -37,41 +34,81 @@ namespace Sidewalk_Evaluation.Utility
             return Circle.Unset;
         }
 
-
-        public static List<Curve> ReduceCurves(List<Curve> targetCurves)
+        /// <summary>
+        /// Rebuilds a curve by converting it into a reduced polyline and then returning the polyline curve
+        /// </summary>
+        /// <param name="targetCrv">curve to reduce/rebuild</param>
+        /// <returns></returns>
+        public static Curve RebuildCurve(Curve targetCrv)
         {
-            List<Curve> reducedCurves = new List<Curve>();
-            if (targetCurves != null && targetCurves.Count > 0)
+            Curve rebuiltCurve;
+
+            if (targetCrv != null)
             {
-                for(int i=0; i<targetCurves.Count; i++)
+                PolylineCurve plc = targetCrv.ToPolyline(0.1, 1.0, 6, 100);
+
+                int point_count = plc.PointCount;
+                Polyline pl = new Polyline(point_count);
+                for (int i = 0; i < plc.PointCount; ++i)
                 {
-                    double t0 = targetCurves[i].Domain.Min; 
-                    double t1 = targetCurves[i].Domain.Max; 
-                    double t;
-                    List<Point3d> discPoints = new List<Point3d>();
+                    pl.Add(plc.Point(i));
+                }
 
-                    int count = (int)targetCurves[i].GetLength()/5;
-                    if (count > 1000)
-                        count = 1000;
-
-                    targetCurves[i].Rebuild(count, 1, true);
-                    bool disc  = targetCurves[i].GetNextDiscontinuity(Continuity.C0_continuous, t0, t1, out t);
-
-                    while (disc)
-                    {
-                        discPoints.Add(targetCurves[i].PointAt(t));
-                    }
-
-                    if(discPoints.Count > 0)
-                    {
-                        reducedCurves.Add(new PolylineCurve(discPoints));
-                    }
+                if (pl != null)
+                {
+                    pl.MergeColinearSegments(0.1, true);
+                    rebuiltCurve = pl.ToPolylineCurve();
+                    //return Curve.ProjectToPlane(rebuiltCurve, Plane.WorldXY); 
+                    return rebuiltCurve;
+                }
+                else
+                {
+                    return targetCrv;
                 }
             }
 
-            return reducedCurves;
+            else
+            {
+                return targetCrv;
+            }
         }
 
+        /// <summary>
+        /// Validate a curve to check if it is: 1. closed, 2. valid
+        /// </summary>
+        /// <param name="targetCurves"></param>
+        /// <returns></returns>
+        public static bool ValidateCurve(Curve targetCurve)
+        {
+            if (targetCurve.IsClosed == true && targetCurve.IsValid == true)
+            {
+                Debug.WriteLine("CURVE IS VALID");
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// validate and rebuild a list of curves 
+        /// </summary>
+        /// <param name="targetCurves">curves to clean</param>
+        /// <returns></returns>
+        public static List<Curve> CleanCurves(List<Curve> targetCurves)
+        {
+            List<Curve> cleanedCurves = new List<Curve>();
+
+            for (int i = 0; i < targetCurves.Count; i++)
+            {
+                if (ValidateCurve(targetCurves[i]) == true)
+                    cleanedCurves.Add(RebuildCurve(targetCurves[i]));
+            }
+
+
+            return cleanedCurves;
+        }
 
     }
 }

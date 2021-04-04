@@ -61,10 +61,10 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Include="CleanSidewalksComponent.cs" />
     <Compile Include="TreesComponent.cs" />
     <Compile Include="Sidewalk_EvaluationInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Utility\DefaultValueList .cs" />
     <Compile Include="Utility\GeometricOps.cs" />
     <Compile Include="Utility\Helpers.cs" />
   </ItemGroup>
@@ -76,6 +76,9 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Resources\Icons_Base_Tree.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\Icons_Base_Sidewalk.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
