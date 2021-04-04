@@ -1,0 +1,8 @@
+D:\OneDrive\Github\Sidewalk_Evaluation\Sidewalk_Evaluation\Sidewalk_Evaluation\bin\Sidewalk_Evaluation.dll
+D:\OneDrive\Github\Sidewalk_Evaluation\Sidewalk_Evaluation\Sidewalk_Evaluation\bin\Sidewalk_Evaluation.pdb
+D:\OneDrive\Github\Sidewalk_Evaluation\Sidewalk_Evaluation\Sidewalk_Evaluation\obj\Debug\Sidewalk_Evaluation.csprojAssemblyReference.cache
+D:\OneDrive\Github\Sidewalk_Evaluation\Sidewalk_Evaluation\Sidewalk_Evaluation\obj\Debug\Sidewalk_Evaluation.csproj.CoreCompileInputs.cache
+D:\OneDrive\Github\Sidewalk_Evaluation\Sidewalk_Evaluation\Sidewalk_Evaluation\obj\Debug\Sidewalk_Evaluation.dll
+D:\OneDrive\Github\Sidewalk_Evaluation\Sidewalk_Evaluation\Sidewalk_Evaluation\obj\Debug\Sidewalk_Evaluation.pdb
+D:\OneDrive\Github\Sidewalk_Evaluation\Sidewalk_Evaluation\Sidewalk_Evaluation\obj\Debug\Sidewalk_Evaluation.Properties.Resources.resources
+D:\OneDrive\Github\Sidewalk_Evaluation\Sidewalk_Evaluation\Sidewalk_Evaluation\obj\Debug\Sidewalk_Evaluation.csproj.GenerateResource.cache
