@@ -63,6 +63,16 @@ namespace Sidewalk_Evaluation.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
         /// </summary>
+        internal static System.Drawing.Icon Icons_Base_Populate {
+            get {
+                object obj = ResourceManager.GetObject("Icons_Base_Populate", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
         internal static System.Drawing.Icon Icons_Base_Sidewalk {
             get {
                 object obj = ResourceManager.GetObject("Icons_Base_Sidewalk", resourceCulture);

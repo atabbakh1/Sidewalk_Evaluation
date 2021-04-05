@@ -1,8 +1,13 @@
 ﻿using Rhino.Geometry;
 using Rhino;
+using Grasshopper.Kernel;
+using Grasshopper.Kernel.Data;
 using System.Diagnostics;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using Grasshopper;
+
 namespace Sidewalk_Evaluation.Utility
 {
     class GeometricOps
@@ -80,15 +85,22 @@ namespace Sidewalk_Evaluation.Utility
         /// <returns></returns>
         public static bool ValidateCurve(Curve targetCurve)
         {
-            if (targetCurve.IsClosed == true && targetCurve.IsValid == true)
+
+            if(targetCurve != null)
             {
-                Debug.WriteLine("CURVE IS VALID");
-                return true;
+                if (targetCurve.IsClosed == true && targetCurve.IsValid == true)
+                {
+                    Debug.WriteLine("CURVE IS VALID");
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
             }
-            else
-            {
-                return false;
-            }
+
+            return false;
+
         }
 
         /// <summary>
@@ -100,14 +112,68 @@ namespace Sidewalk_Evaluation.Utility
         {
             List<Curve> cleanedCurves = new List<Curve>();
 
-            for (int i = 0; i < targetCurves.Count; i++)
+            if (targetCurves != null && targetCurves.Count > 0)
             {
-                if (ValidateCurve(targetCurves[i]) == true)
-                    cleanedCurves.Add(RebuildCurve(targetCurves[i]));
+                for (int i = 0; i < targetCurves.Count; i++)
+                {
+                    if (ValidateCurve(targetCurves[i]) == true)
+                        cleanedCurves.Add(RebuildCurve(targetCurves[i]));
+                }
+
             }
 
-
             return cleanedCurves;
+        }
+
+        /// <summary>
+        /// Creates a planar mesh using a set of closed curves
+        /// </summary>
+        /// <param name="inputClosedCurves">closed curves for mesh creation</param>
+        /// <returns></returns>
+        public static Brep CreatePlanarMesh(List<Curve> inputClosedCurves)
+        {
+            Mesh finalPlanarMesh = new Mesh();
+
+            Brep surf = new Brep();
+            if(inputClosedCurves != null && inputClosedCurves.Count > 0)
+            {
+                //create a brep planar surface using the input curves
+                Brep[] tempSurf = Brep.CreatePlanarBreps(inputClosedCurves, 0.1);
+
+                if(tempSurf.Length > 0)
+                {
+                    surf = tempSurf[0];
+                }
+
+                /*
+                Mesh[] meshArray = null;
+
+                MeshingParameters minimal = MeshingParameters.Minimal;
+
+                //build a mesh using the brep
+                for (int i = 0; i < tempSurf.Length; i++)
+                {
+                    meshArray = Mesh.CreateFromBrep(tempSurf[i], minimal);
+                }
+
+                //join meshes
+                if (meshArray.Length > 1)
+                {
+                    for (int i = 0; i < meshArray.Length; i++)
+                    {
+                        finalPlanarMesh.Append(meshArray[i]);
+                    }
+                }
+                else
+                {
+                    finalPlanarMesh = meshArray[0];
+                }
+                */
+            }
+
+           
+
+            return surf;
         }
 
     }
