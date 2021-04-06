@@ -35,8 +35,10 @@ namespace Sidewalk_Evaluation
             pManager[3].Optional = true;
             pManager.AddCurveParameter("Subway", "S", "(optional) closed curves representing subway entry point to consider in the evaluation", GH_ParamAccess.list);
             pManager[4].Optional = true;
-            pManager.AddNumberParameter("Capacity Utilization", "CU", "Percentage of the individual sidewalk capacity to populate -- between 0 and a 100", GH_ParamAccess.item, 50);
+            pManager.AddNumberParameter("Subway Influence", "SI", "population multiplier for sidewalks with subway -- between 1 and 2\n\n 1 = No influence \n 2 = double population", GH_ParamAccess.item, 1.25);
             pManager[5].Optional = true;
+            pManager.AddNumberParameter("Capacity Utilization", "CU", "Percentage of the individual sidewalk capacity to populate -- between 0 and a 100", GH_ParamAccess.item, 50);
+            pManager[6].Optional = true;
 
         }
 
@@ -60,6 +62,7 @@ namespace Sidewalk_Evaluation
             double radiusInput = 3;
             List<Circle> treesCirclesInput = new List<Circle>();
             List<Curve> subwayCurvesInput = new List<Curve>();
+            double subwayInfluence = 1.25;
             double capacityUtilization = 50;
 
 
@@ -75,7 +78,8 @@ namespace Sidewalk_Evaluation
             DA.GetData(2, ref radiusInput);
             if (!DA.GetDataList(3, treesCirclesInput)) considerTrees = false;
             if (!DA.GetDataList(4, subwayCurvesInput)) considerSubway = false;
-            DA.GetData(5, ref capacityUtilization);
+            DA.GetData(5, ref subwayInfluence);
+            DA.GetData(6, ref capacityUtilization);
 
             List<Sidewalk> sidewalkInstances = new List<Sidewalk>();
             Curve[] joinedBuildings = null;
@@ -213,7 +217,11 @@ namespace Sidewalk_Evaluation
                     //if sidewalk has a subway then increase the population by 25% (this should be exposed to users?)
                     if(sidewalkInstances[i].HasSubway == true)
                     {
-                        population = Convert.ToInt32((double)population * 1.25);
+                        if (subwayInfluence < 1)
+                            subwayInfluence = 1;
+                        else if (subwayInfluence > 2)
+                            subwayInfluence = 2;
+                        population = Convert.ToInt32((double)population * subwayInfluence);
                     }
 
                     if(population > 0)
