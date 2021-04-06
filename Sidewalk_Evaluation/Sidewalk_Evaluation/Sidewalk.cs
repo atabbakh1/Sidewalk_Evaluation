@@ -32,11 +32,13 @@ namespace Sidewalk_Evaluation
         /// </summary>
         public double Sidewalk_Area { get; set; }
 
+        public bool HasTrees { get; set; }
         /// <summary>
         /// the sidewalk tree curves as a list (if any)
         /// </summary>
         public List<Curve> Sidewalk_Trees { get; set; }
 
+        public bool HasSubway { get; set; }
         /// <summary>
         /// the sidewalk subway point (if any)
         /// </summary>
