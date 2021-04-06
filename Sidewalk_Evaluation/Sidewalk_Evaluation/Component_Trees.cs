@@ -42,7 +42,7 @@ namespace Sidewalk_Evaluation
             pManager.AddIntegerParameter("X_Index", "X", "The index of the CSV column that contains the X coordinates of the tree location.", GH_ParamAccess.item);
             pManager.AddIntegerParameter("Y_Index", "Y", "The index of the CSV column that contains the Y coordinates of the tree location.", GH_ParamAccess.item);
             pManager.AddIntegerParameter("DBH_Index", "D", "The index of the CSV column that contains the DBH (Diameter at Breast Height) of the tree.", GH_ParamAccess.item);
-            pManager.AddIntegerParameter("Borough_Index", "B", "The index of the CSV column that contains the borough information the tree belongs to.", GH_ParamAccess.item);
+            pManager.AddIntegerParameter("Borough_Index", "B", "The index of the CSV column that contains the borough information the tree belongs to.", GH_ParamAccess.item, 0);
             pManager.AddIntegerParameter("Borough", "TB", "The target borough to load the trees from -- Default value is 0: \n\n" +
                                                           "0 = Manhattan \n" +
                                                           "1 = Queens \n" +
@@ -112,7 +112,7 @@ namespace Sidewalk_Evaluation
                         Circle tree = GeometricOps.CreateCircleFromCSV(csvData[i], x_i, y_i, dbh_i, out center);
 
                         //check if tree/circle is within the defined region
-                        if(Curve.PlanarClosedCurveRelationship(region, new ArcCurve(tree), Plane.WorldXY, 0.1) == RegionContainment.BInsideA)
+                        if(GeometricOps.InsideOrIntersecting(region, new ArcCurve(tree)))
                         {
                             trees.Add(tree);
                         }

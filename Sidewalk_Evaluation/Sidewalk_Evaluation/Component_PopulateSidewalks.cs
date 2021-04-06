@@ -5,6 +5,7 @@ using Grasshopper;
 using Rhino.Geometry;
 using System;
 using System.Collections.Generic;
+using Sidewalk_Evaluation.Utility;
 
 namespace Sidewalk_Evaluation
 {
@@ -25,16 +26,17 @@ namespace Sidewalk_Evaluation
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddCurveParameter("ROW Sidewalks", "R", "Sidewalks directly adjacent to buildings -- Right Of Way", GH_ParamAccess.list);
-            pManager[0].Optional = true;
-            pManager.AddCurveParameter("Interior Sidewalks", "I", "Sidewalks with no direct relation to buildings -- pathways", GH_ParamAccess.list);
+            pManager.AddCurveParameter("Sidewalk Curves", "R", "Curves curves representing sidewalk outer edge", GH_ParamAccess.list);
+            pManager.AddCurveParameter("Building Curves", "B", "(optional) Closed curves representing building footprints to consider in the evaluation", GH_ParamAccess.list);
             pManager[1].Optional = true;
-            pManager.AddCurveParameter("Trees", "T", "closed curves/circles representing trees", GH_ParamAccess.list);
+            pManager.AddNumberParameter("Radius", "R", "The radius of the circle each pedastrian will rpresent -- default is 3", GH_ParamAccess.item, 3);
             pManager[2].Optional = true;
-            pManager.AddCurveParameter("Subway", "S", "closed curves representing subway entry point", GH_ParamAccess.list);
+            pManager.AddCircleParameter("Trees", "T", "(optional) Circles representing trees to consider in the evaluation", GH_ParamAccess.list);
             pManager[3].Optional = true;
-            pManager.AddNumberParameter("Subway Radius", "SR", "The radius of the subway entrance area of influence -- default is 100", GH_ParamAccess.item, 100);
+            pManager.AddCurveParameter("Subway", "S", "(optional) closed curves representing subway entry point to consider in the evaluation", GH_ParamAccess.list);
             pManager[4].Optional = true;
+            pManager.AddNumberParameter("Subway Radius", "SR", "The radius of the subway entrance area of influence -- default is 100", GH_ParamAccess.item, 100);
+            pManager[5].Optional = true;
 
         }
 
@@ -43,7 +45,7 @@ namespace Sidewalk_Evaluation
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddCurveParameter("Pedastrians", "P", "Circles representing pedastrians", GH_ParamAccess.list);
+            pManager.AddCircleParameter("Pedastrians", "P", "Circles representing pedastrians", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -52,7 +54,170 @@ namespace Sidewalk_Evaluation
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            
+            //input
+            List<Curve> sidewalkInputCurves = new List<Curve>();
+            List<Curve> buildingFootprintsInput = new List<Curve>();
+            double radiusInput = 3;
+            List<Circle> treesCirclesInput = new List<Circle>();
+            List<Curve> subwayCurvesInput = new List<Curve>();
+            double subwayInfluenceRadius = 100;
+
+
+            //output
+            List<Circle> pedastriansCircles = new List<Circle>();
+
+            bool considerBuildings = false;
+            bool considerTrees = false;
+            bool considerSubway = false;
+
+            if (!DA.GetDataList(0, sidewalkInputCurves)) return;
+            if (!DA.GetDataList(1, buildingFootprintsInput)) considerBuildings = false;
+            DA.GetData(2, ref radiusInput);
+            if (!DA.GetDataList(3, treesCirclesInput)) considerTrees = false;
+            if (!DA.GetDataList(4, subwayCurvesInput)) considerSubway = false;
+            DA.GetData(5, ref subwayInfluenceRadius);
+
+            List<Sidewalk> sidewalkInstances = new List<Sidewalk>();
+            Curve[] joinedBuildings = null;
+
+
+
+            if (buildingFootprintsInput != null && buildingFootprintsInput.Count > 0)
+            {
+                considerBuildings = true;
+                //union all adjacent building for more efficency (union twice to get rid of interior courts -- donuts)
+                joinedBuildings = Curve.CreateBooleanUnion(Curve.CreateBooleanUnion(buildingFootprintsInput, 0.1), 0.1);
+            }
+            if(treesCirclesInput != null && treesCirclesInput.Count > 0)
+            {
+                considerTrees = true;
+            }
+
+            if (subwayCurvesInput != null && subwayCurvesInput.Count > 0)
+            {
+                considerSubway = true;
+            }
+
+            double pedastrianArea = Math.PI * radiusInput * radiusInput;
+
+
+            #region PROCESS SIDEWALK CURVES
+
+            if (sidewalkInputCurves != null && sidewalkInputCurves.Count > 0)
+            {
+                for (int i = 0; i < sidewalkInputCurves.Count; i++)
+                {
+                    if(sidewalkInputCurves[i].IsClosed)     //some curves are not closed from the dataset
+                    {
+                        //init new sidewalk object
+                        Sidewalk sw = new Sidewalk();
+                        sw.Sidewalk_Curve = sidewalkInputCurves[i];             //store the sidewalk curve
+
+                        #region HANDLE BUILDING FOOTPRINTS
+                        //if user provided building curves
+                        if (considerBuildings == true)
+                        {
+                            List<Curve> insideThisSidewalk = new List<Curve>();
+
+                            //check for containment against the current sidewalk curve
+                            if (joinedBuildings != null && joinedBuildings.Length > 0)
+                            {
+                                for (int j = 0; j < joinedBuildings.Length; j++)
+                                {
+                                    if (GeometricOps.IsInsideCurve(sidewalkInputCurves[i], buildingFootprintsInput[j]))
+                                    {
+                                        insideThisSidewalk.Add(buildingFootprintsInput[j]);
+                                    }
+                                }
+                            }
+
+                            //if any buildings are inside this sidewalk curve
+                            if (insideThisSidewalk.Count > 0)
+                            {
+                                sw.IsROW = true;                                                                                    //sidewalk instance is a Right-Of-Way type 
+                                sw.Sidewalk_Buildings = insideThisSidewalk;                                                         //store buildings that belong to this sidewalk
+                                sw.Sidewalk_Area = GeometricOps.CalculateStencilArea(sidewalkInputCurves[i], insideThisSidewalk);   //calculate the area of the sidewalk minus that of the buildings 
+                            }
+                        }
+                        //if the sidewalk doesn't have any building then just calculate its individual area
+                        if (sw.IsROW == false)
+                        {
+                            sw.Sidewalk_Area = GeometricOps.CalculateArea(sidewalkInputCurves[i]);      //single part area
+                        }
+
+                        #endregion
+
+                        #region HANDLE TREES
+                        //if user provided tree curves
+                        if (considerTrees == true)
+                        {
+                            for (int j = 0; j < treesCirclesInput.Count; j++)
+                            {
+                                List<Curve> trees = new List<Curve>();
+                                ArcCurve treeCurve = new ArcCurve(treesCirclesInput[j]);                    //convert to ArcCurve to access Curve tools
+                                if (GeometricOps.InsideOrIntersecting(sidewalkInputCurves[i], treeCurve))   //check for either intersection or containment with current sidewalk curve
+                                {
+                                    trees.Add(treeCurve);                                       //add to this sidewalk trees property list
+                                    sw.Sidewalk_Area -= GeometricOps.CalculateArea(treeCurve);              //subtract the tree area from the current sidewalk area
+                                }
+                                sw.Sidewalk_Trees = trees;
+                            }
+                        }
+                        #endregion
+
+                        #region HANDLE SUBWAY
+
+                        //if user provided subway entry curves
+                        if (considerSubway == true)
+                        {
+                            for (int j = 0; j < subwayCurvesInput.Count; j++)
+                            {
+                                if (GeometricOps.InsideOrIntersecting(sidewalkInputCurves[i], subwayCurvesInput[j]))    //check for either intersection or containment with current sidewalk curve
+                                {
+                                    sw.Sidewalk_Subway = (GeometricOps.ReturnCurveCentroid(subwayCurvesInput[j]));      //add to this sidewalk subway propery
+                                }
+                            }
+                        }
+
+                        #endregion
+
+
+                        //calculate the estimated number of circles this sidewalk can fit based on the final area and pedastrian radius
+                        sw.Capacity = Convert.ToInt32(sw.Sidewalk_Area / pedastrianArea);
+                        //add to the global list of sidewalk instances
+                        sidewalkInstances.Add(sw);
+                    }
+                   
+                }
+
+            }
+            #endregion
+
+            if (sidewalkInstances.Count > 0)
+            {
+                for(int i=0; i<sidewalkInstances.Count; i++)
+                {
+                    Point3d[] pts;
+                    sidewalkInstances[i].Sidewalk_Curve.DivideByCount(sidewalkInstances[i].Capacity, false, out pts);
+
+                    if(pts.Length > 0)
+                    {
+                        List<Circle> pedastrians = new List<Circle>();
+                        for (int j = 0; j < pts.Length; j++)
+                        {
+                            Circle circle = new Circle(pts[j], radiusInput);
+                            pedastrians.Add(circle);
+                            sidewalkInstances[i].Sidewalk_Pedastrians = pedastrians;
+                            pedastriansCircles.Add(circle);
+                        }
+                    }
+                   
+                }
+
+            }
+
+            DA.SetDataList(0, pedastriansCircles);
+
         }
 
         /// <summary>

@@ -176,5 +176,97 @@ namespace Sidewalk_Evaluation.Utility
             return surf;
         }
 
+        /// <summary>
+        /// calcuate the area of a curve excluding the area of any interior curves
+        /// </summary>
+        /// <param name="outsideCurve"></param>
+        /// <param name="insideCurves"></param>
+        /// <returns></returns>
+        public static double CalculateStencilArea(Curve outsideCurve, List<Curve> insideCurves)
+        {
+            double insideAreas = 0;
+            double outsideArea;
+
+            outsideArea= AreaMassProperties.Compute(outsideCurve).Area;
+
+            for (int i = 0; i < insideCurves.Count; i++)
+            {
+                insideAreas += AreaMassProperties.Compute(insideCurves[i]).Area;
+            }
+
+            return outsideArea - insideAreas;
+        }
+
+        /// <summary>
+        /// Calculate the area of a single curve
+        /// </summary>
+        /// <param name="curve"></param>
+        /// <returns></returns>
+        public static double CalculateArea(Curve curve)
+        {
+            return AreaMassProperties.Compute(curve).Area;
+        } 
+
+        public static Point3d ReturnCurveCentroid(Curve curve)
+        {
+            return AreaMassProperties.Compute(curve).Centroid;
+        }
+        /// <summary>
+        /// check if a curve is contained inside another
+        /// </summary>
+        /// <param name="outerCurve"></param>
+        /// <param name="curveToCheck"></param>
+        /// <returns></returns>
+        public static bool IsInsideCurve(Curve outerCurve, Curve curveToCheck)
+        {
+            if (Curve.PlanarClosedCurveRelationship(outerCurve, curveToCheck, Plane.WorldXY, 0.1) == RegionContainment.BInsideA)
+                return true;
+
+            return false;
+            
+        }
+
+        /// <summary>
+        /// check if a curves are intersecting
+        /// </summary>
+        /// <param name="outerCurve"></param>
+        /// <param name="curveToCheck"></param>
+        /// <returns></returns>
+        public static bool AreIntersecting(Curve curveA, Curve curveB)
+        {
+            if (Curve.PlanarClosedCurveRelationship(curveA, curveB, Plane.WorldXY, 0.1) == RegionContainment.MutualIntersection)
+                return true;
+
+            return false;
+        }
+
+
+        public static bool InsideOrIntersecting(Curve outerCurve, Curve curveToCheck)
+        {
+
+            RegionContainment relation = Curve.PlanarClosedCurveRelationship(outerCurve, curveToCheck, Plane.WorldXY, 0.1);
+            if (relation == RegionContainment.BInsideA || relation == RegionContainment.MutualIntersection)
+                return true;
+
+            return false;
+
+
+        }
+
+        public static void Repel(Point3d pointToRepel, Point3d destination, List<Curve> bouncers)
+        {
+            Vector3d vector = destination - pointToRepel;
+
+            for(int i =0; i<bouncers.Count; i++)
+            {
+                bouncers[i].ClosestPoint(pointToRepel, out double t);
+                double distance = pointToRepel.DistanceTo(bouncers[i].PointAt(t));
+                if (distance > 3) continue;
+
+            }
+        }
+
+
+
     }
 }

@@ -7,6 +7,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Rhino.Geometry.Intersect;
 using System.Diagnostics;
+using Sidewalk_Evaluation.Utility;
+
 
 namespace Sidewalk_Evaluation
 {
@@ -29,7 +31,7 @@ namespace Sidewalk_Evaluation
         {
             pManager.AddCurveParameter("sidewalk curves", "S", "Closed curves representing sidewalk regions", GH_ParamAccess.list);
             pManager.AddCurveParameter("Building Curves", "B", "Closed curves representing building footprints", GH_ParamAccess.list);
-            pManager.AddCurveParameter("Region Curve", "R", "A curve defining the scope of sidewalk organization -- For optimized performance", GH_ParamAccess.item);
+            pManager.AddCurveParameter("Region Curve", "R", "A curve defining the scope of sidewalk evaluation -- For optimized performance", GH_ParamAccess.item);
 
         }
 
@@ -38,8 +40,8 @@ namespace Sidewalk_Evaluation
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddCurveParameter("ROW", "R", "Sidewalks directly adjacent to buildings -- Right Of Way", GH_ParamAccess.list);
-            pManager.AddCurveParameter("Interior", "IN", "Sidewalks with no direct relation to buildings -- pathways", GH_ParamAccess.list);
+            pManager.AddCurveParameter("Sidewalks", "S", "Sidewalks inside or intersecting with region curve", GH_ParamAccess.list);
+            pManager.AddCurveParameter("Building Clusters", "B", "Joined building footprints inside or intersecting with region curve", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -55,8 +57,8 @@ namespace Sidewalk_Evaluation
             Curve regionCurve = null;
 
             //output
-            List<Curve> sidewalks_Row_ouput = new List<Curve>();
-            List<Curve> sidewalks_Interior_ouput = new List<Curve>();
+            List<Curve> sidewalksOutput = new List<Curve>();
+            List<Curve> buildingsOutput = new List<Curve>();
 
 
             if (!DA.GetDataList(0, sidewalkCurvesInput)) return;
@@ -64,64 +66,44 @@ namespace Sidewalk_Evaluation
             if (!DA.GetData(2, ref regionCurve)) return;
 
 
-            List<Curve> filteredSidewalkInput = new List<Curve>();
-
+            //check for sidewalk containment/intersection against region curve
             if (regionCurve != null && sidewalkCurvesInput.Count > 0)
             {
                 for(int i=0; i<sidewalkCurvesInput.Count; i++)
                 {
-                    RegionContainment relationship = Curve.PlanarClosedCurveRelationship(regionCurve, sidewalkCurvesInput[i], Plane.WorldXY, 0.1);
-                    if (relationship == RegionContainment.BInsideA || relationship == RegionContainment.MutualIntersection)
+                    if(sidewalkCurvesInput[i].IsClosed)     //some curves are not closed from the dataset
                     {
-                        filteredSidewalkInput.Add(sidewalkCurvesInput[i]);
+                        if (GeometricOps.InsideOrIntersecting(regionCurve, sidewalkCurvesInput[i]))
+                        {
+                            sidewalksOutput.Add(sidewalkCurvesInput[i]);
+                        }
                     }
+
                 }
 
             }
 
-            else if(regionCurve == null)
-            {
-                filteredSidewalkInput = sidewalkCurvesInput;
-            }
-
-            //boolean union all building foot prints
-            Curve[] joinedBuildings = null;
+            //check for building containment/intersection against region curve
             if(buildingCurvesInput.Count > 0)
             {
-                joinedBuildings = Curve.CreateBooleanUnion(buildingCurvesInput, 0.1);
-            }
+                //union buildings for loop efficiency -- seemed to improve performance 
+                Curve[] joinedBuildings = Curve.CreateBooleanUnion(buildingCurvesInput, 0.1);
 
-            if(filteredSidewalkInput != null && joinedBuildings != null)
-            {
-                if (filteredSidewalkInput.Count > 0 && joinedBuildings.Length > 0)
+                for(int i=0; i<joinedBuildings.Length; i++)
                 {
-                    for (int i = 0; i < filteredSidewalkInput.Count; i++)
+                    if(joinedBuildings[i].IsClosed)     //some curves are not closed from the dataset
                     {
-                        bool hasBuildings = false;
-                        for (int j = 0; j < joinedBuildings.Length; j++)
+                        if (GeometricOps.InsideOrIntersecting(regionCurve, joinedBuildings[i]))
                         {
-                            //check for building containment against filtered sidewalks
-                            RegionContainment relationship = Curve.PlanarClosedCurveRelationship(filteredSidewalkInput[i], joinedBuildings[j], Plane.WorldXY, 0.1);
-                            if (relationship == RegionContainment.BInsideA)
-                            {
-                                hasBuildings = true;
-                            }
-                        }
-
-                        if (hasBuildings == true)
-                        {
-                            sidewalks_Row_ouput.Add(filteredSidewalkInput[i]);
-                        }
-                        else
-                        {
-                            sidewalks_Interior_ouput.Add(filteredSidewalkInput[i]);
+                            buildingsOutput.Add(joinedBuildings[i]);
                         }
                     }
                 }
             }
 
-            DA.SetDataList(0, sidewalks_Row_ouput);
-            DA.SetDataList(1, sidewalks_Interior_ouput);
+           
+            DA.SetDataList(0, sidewalksOutput);
+            DA.SetDataList(1, buildingsOutput);
         }
 
         /// <summary>
