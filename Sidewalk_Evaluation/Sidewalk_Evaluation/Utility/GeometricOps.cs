@@ -253,17 +253,45 @@ namespace Sidewalk_Evaluation.Utility
 
         }
 
-        public static void Repel(Point3d pointToRepel, Point3d destination, List<Curve> bouncers)
+        public static List<Point3d> Repel(List<Point3d> pointToRepel, int iterationCount)
         {
-            Vector3d vector = destination - pointToRepel;
 
-            for(int i =0; i<bouncers.Count; i++)
+            List<Point3d> centers = new List<Point3d>(pointToRepel);
+
+            for (int iteration = 0; iteration < iterationCount; iteration++)
             {
-                bouncers[i].ClosestPoint(pointToRepel, out double t);
-                double distance = pointToRepel.DistanceTo(bouncers[i].PointAt(t));
-                if (distance > 3) continue;
+                List<Vector3d> totalMoves = new List<Vector3d>();
+                List<double> collisionCounts = new List<double>();
 
+                for (int i = 0; i < centers.Count; i++)
+                {
+                    totalMoves.Add(new Vector3d(0.0, 0.0, 0.0));
+                    collisionCounts.Add(0.0);
+                }
+
+                double collisionDistance = 3.0;
+
+                for (int i = 0; i < centers.Count; i++)
+                    for (int j = i + 1; j < centers.Count; j++)
+                    {
+                        double d = centers[i].DistanceTo(centers[j]);
+                        if (d > collisionDistance) continue;
+
+                        Vector3d move = centers[i] - centers[j];
+                        move.Unitize();
+                        move *= 0.5 * (collisionDistance - d);
+                        totalMoves[i] += move;
+                        totalMoves[j] -= move;
+                        collisionCounts[i] += 1.0;
+                        collisionCounts[j] += 1.0;
+                    }
+
+                for (int i = 0; i < centers.Count; i++)
+                    if (collisionCounts[i] != 0.0)
+                        centers[i] += totalMoves[i] / collisionCounts[i];
             }
+
+            return centers;
         }
 
 

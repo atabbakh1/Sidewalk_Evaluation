@@ -4,6 +4,7 @@ using Grasshopper.Kernel.Types;
 using Grasshopper;
 using Rhino.Geometry;
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using Sidewalk_Evaluation.Utility;
 
@@ -37,7 +38,7 @@ namespace Sidewalk_Evaluation
             pManager[4].Optional = true;
             pManager.AddNumberParameter("Subway Influence", "SI", "population multiplier for sidewalks with subway -- between 1 and 2\n\n 1 = No influence \n 2 = double population", GH_ParamAccess.item, 1.25);
             pManager[5].Optional = true;
-            pManager.AddNumberParameter("Capacity Utilization", "CU", "Percentage of the individual sidewalk capacity to populate -- between 0 and a 100", GH_ParamAccess.item, 50);
+            pManager.AddNumberParameter("Capacity Utilization", "CU", "Percentage of the individual sidewalk capacity to populate -- between 0 and a 100", GH_ParamAccess.item, 10);
             pManager[6].Optional = true;
 
         }
@@ -47,7 +48,8 @@ namespace Sidewalk_Evaluation
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddCircleParameter("Pedastrians", "P", "Circles representing pedastrians", GH_ParamAccess.list);
+            pManager.AddCurveParameter("Sidewalks_T", "ST", "Sidewalks organized data tree", GH_ParamAccess.tree);
+            pManager.AddPointParameter("Pedastrians_T", "PT", "Pedastrians point organized data tree", GH_ParamAccess.tree);
         }
 
         /// <summary>
@@ -67,7 +69,8 @@ namespace Sidewalk_Evaluation
 
 
             //output
-            List<Circle> pedastriansCircles = new List<Circle>();
+            DataTree<Curve> sidewalksDataTree = new DataTree<Curve>();
+            DataTree<Point3d> pedastriansDataTree = new DataTree<Point3d>();
 
             bool considerBuildings = false;
             bool considerTrees = false;
@@ -207,47 +210,50 @@ namespace Sidewalk_Evaluation
                 if (capacityUtilization > 100)
                     capacityUtilization = 100;
 
-                for(int i=0; i<sidewalkInstances.Count; i++)
+                GH_Path path = new GH_Path(0); ;
+
+                for (int i=0; i<sidewalkInstances.Count; i++)
                 {
+                    
+
                     Point3d[] pts;
 
                     //modify the capacity based on default or user input percentage
                     int population = Convert.ToInt32((capacityUtilization / 100) * (double)sidewalkInstances[i].Capacity);
 
-                    //if sidewalk has a subway then increase the population by 25% (this should be exposed to users?)
+                    //if sidewalk has a subway then increase the population by the user defined multiplyer
                     if(sidewalkInstances[i].HasSubway == true)
                     {
+                        //clamp values between 1 and 2
                         if (subwayInfluence < 1)
                             subwayInfluence = 1;
                         else if (subwayInfluence > 2)
                             subwayInfluence = 2;
+
                         population = Convert.ToInt32((double)population * subwayInfluence);
                     }
 
                     if(population > 0)
                     {
-                        sidewalkInstances[i].Sidewalk_Curve.DivideByCount(population, false, out pts);
+                        sidewalkInstances[i].Sidewalk_Curve.DivideByCount(population, false, out pts);      //divide sidewalk curve by number of population
 
                         if (pts.Length > 0)
                         {
-                            List<Circle> pedastrians = new List<Circle>();
-                            for (int j = 0; j < pts.Length; j++)
+                            sidewalksDataTree.Add(sidewalkInstances[i].Sidewalk_Curve, path);              //add sidewalk curve to data tree once we're sure it has pedastrians
+
+                            for(int j =0; j<pts.Length; j++)
                             {
-                                Circle circle = new Circle(pts[j], radiusInput);
-                                pedastrians.Add(circle);
-                                sidewalkInstances[i].Sidewalk_Pedastrians = pedastrians;
-                                pedastriansCircles.Add(circle);
+                                pedastriansDataTree.Add(pts[j], path);
                             }
+
+                            path = new GH_Path(sidewalksDataTree.BranchCount);
                         }
                     }
-                   
-                   
                 }
-
             }
 
-            DA.SetDataList(0, pedastriansCircles);
-
+            DA.SetDataTree(0, sidewalksDataTree);
+            DA.SetDataTree(1, pedastriansDataTree);
         }
 
         /// <summary>
