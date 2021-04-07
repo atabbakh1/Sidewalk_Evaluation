@@ -7,17 +7,25 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using Sidewalk_Evaluation.Utility;
+using System.Drawing;
 
 namespace Sidewalk_Evaluation
 {
-    public class Component_PopulateSidewalks : GH_Component
+    public class Component_Evaluate : GH_Component
     {
+
+
+        private readonly List<string> textTags = new List<string>();
+        private readonly List<Point3d> textTagsAnchors = new List<Point3d>();
+        Color tagsColor = Color.LimeGreen;
+
+
         /// <summary>
         /// Initializes a new instance of the MyComponent1 class.
         /// </summary>
-        public Component_PopulateSidewalks()
-          : base("Populate", "P",
-              "Populate input sidewalks with circles representing pedestrians",
+        public Component_Evaluate()
+          : base("Evaluate", "E",
+              "Evaluate input sidewalks population based on a social distancing radius",
               "SidewalkEval", "Evaluate")
         {
         }
@@ -27,7 +35,7 @@ namespace Sidewalk_Evaluation
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddCurveParameter("Sidewalk Curves", "R", "Curves curves representing sidewalk outer edge", GH_ParamAccess.list);
+            pManager.AddCurveParameter("Sidewalk Curves", "SW", "Curves curves representing sidewalk outer edge", GH_ParamAccess.list);
             pManager.AddCurveParameter("Building Curves", "B", "(optional) Closed curves representing building footprints to consider in the evaluation", GH_ParamAccess.list);
             pManager[1].Optional = true;
             pManager.AddNumberParameter("Radius", "R", "The radius of the circle each pedastrian will rpresent -- default is 3", GH_ParamAccess.item, 3);
@@ -40,6 +48,8 @@ namespace Sidewalk_Evaluation
             pManager[5].Optional = true;
             pManager.AddNumberParameter("Capacity Utilization", "CU", "Percentage of the individual sidewalk capacity to populate -- between 0 and a 100", GH_ParamAccess.item, 10);
             pManager[6].Optional = true;
+            pManager.AddColourParameter("Color", "CO", "Color to apply to count tags", GH_ParamAccess.item, Color.LimeGreen);
+            pManager[7].Optional = true;
 
         }
 
@@ -48,8 +58,9 @@ namespace Sidewalk_Evaluation
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddCurveParameter("Sidewalks_T", "ST", "Sidewalks organized data tree", GH_ParamAccess.tree);
-            pManager.AddPointParameter("Pedastrians_T", "PT", "Pedastrians point organized data tree", GH_ParamAccess.tree);
+            pManager.AddCurveParameter("Sidewalks_T", "S", "Sidewalks data tree", GH_ParamAccess.tree);
+            pManager.AddCurveParameter("Buildings_T", "B", "Building data tree", GH_ParamAccess.tree);
+            pManager.AddNumberParameter("Counts_T", "C", "Pedastrian Counts per sidewalk", GH_ParamAccess.tree);
         }
 
         /// <summary>
@@ -58,6 +69,7 @@ namespace Sidewalk_Evaluation
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
+
             //input
             List<Curve> sidewalkInputCurves = new List<Curve>();
             List<Curve> buildingFootprintsInput = new List<Curve>();
@@ -67,14 +79,18 @@ namespace Sidewalk_Evaluation
             double subwayInfluence = 1.25;
             double capacityUtilization = 50;
 
-
             //output
             DataTree<Curve> sidewalksDataTree = new DataTree<Curve>();
-            DataTree<Point3d> pedastriansDataTree = new DataTree<Point3d>();
+            DataTree<Curve> buildingsDataTree = new DataTree<Curve>();
+            DataTree<int> countsDataTree = new DataTree<int>();
+
+
 
             bool considerBuildings = false;
             bool considerTrees = false;
             bool considerSubway = false;
+            Curve[] joinedBuildings = null;
+            int population;
 
             if (!DA.GetDataList(0, sidewalkInputCurves)) return;
             if (!DA.GetDataList(1, buildingFootprintsInput)) considerBuildings = false;
@@ -83,11 +99,8 @@ namespace Sidewalk_Evaluation
             if (!DA.GetDataList(4, subwayCurvesInput)) considerSubway = false;
             DA.GetData(5, ref subwayInfluence);
             DA.GetData(6, ref capacityUtilization);
-
-            List<Sidewalk> sidewalkInstances = new List<Sidewalk>();
-            Curve[] joinedBuildings = null;
-
-
+            DA.GetData(7, ref tagsColor);
+            
 
             if (buildingFootprintsInput != null && buildingFootprintsInput.Count > 0)
             {
@@ -110,17 +123,24 @@ namespace Sidewalk_Evaluation
 
             #region PROCESS SIDEWALK CURVES
 
+            List<Sidewalk> sidewalkInstances = new List<Sidewalk>();
+
+
             if (sidewalkInputCurves != null && sidewalkInputCurves.Count > 0)
             {
+
                 for (int i = 0; i < sidewalkInputCurves.Count; i++)
                 {
                     if(sidewalkInputCurves[i].IsClosed)     //some curves are not closed from the dataset
                     {
+
                         //init new sidewalk object
                         Sidewalk sw = new Sidewalk();
-                        sw.Sidewalk_Curve = sidewalkInputCurves[i];             //store the sidewalk curve
-                        sw.HasSubway = false;                                   //assume it doesn't have a subway first
-                        sw.HasTrees = false;                                    //assume it doesn't have trees first
+                        sw.Sidewalk_Curve = sidewalkInputCurves[i];                                         //store the sidewalk curve
+                        sw.Sidewalk_Centroid = GeometricOps.CalculateCentroid(sidewalkInputCurves[i]);      //store the center point
+                        sw.HasSubway = false;                                                               //assume it doesn't have a subway first
+                        sw.HasTrees = false;                                                                //assume it doesn't have trees first
+
 
                         #region HANDLE BUILDING FOOTPRINTS
                         //if user provided building curves
@@ -133,7 +153,7 @@ namespace Sidewalk_Evaluation
                             {
                                 for (int j = 0; j < joinedBuildings.Length; j++)
                                 {
-                                    if (GeometricOps.InsideOrIntersecting(sidewalkInputCurves[i], buildingFootprintsInput[j]))
+                                    if (GeometricOps.IsInsideCurve(sidewalkInputCurves[i], buildingFootprintsInput[j]))
                                     {
                                         insideThisSidewalk.Add(buildingFootprintsInput[j]);
                                     }
@@ -185,7 +205,7 @@ namespace Sidewalk_Evaluation
                                 if (GeometricOps.InsideOrIntersecting(sidewalkInputCurves[i], subwayCurvesInput[j]))    //check for either intersection or containment with current sidewalk curve
                                 {
                                     sw.HasSubway = true;
-                                    sw.Sidewalk_Subway = (GeometricOps.ReturnCurveCentroid(subwayCurvesInput[j]));      //add to this sidewalk subway propery
+                                    sw.Sidewalk_Subway = subwayCurvesInput[j];                                          //add to this sidewalk subway propery
                                 }
                             }
                         }
@@ -195,6 +215,30 @@ namespace Sidewalk_Evaluation
 
                         //calculate the estimated number of circles this sidewalk can fit based on the final area and pedastrian radius
                         sw.Capacity = Convert.ToInt32(sw.Sidewalk_Area / pedastrianArea);
+                        //if user inputs a number larger than a 100
+                        if (capacityUtilization > 100)
+                            capacityUtilization = 100;
+
+                        //modify the capacity based on default or user input percentage
+                        population = Convert.ToInt32((capacityUtilization / 100) * (double)sw.Capacity);
+
+                        //if sidewalk has a subway then increase the population by the user defined multiplyer
+                        if (sw.HasSubway == true)
+                        {
+                            //clamp values between 1 and 2
+                            if (subwayInfluence < 1)
+                                subwayInfluence = 1;
+                            else if (subwayInfluence > 2)
+                                subwayInfluence = 2;
+
+                            population = Convert.ToInt32((double)population * subwayInfluence);
+
+                        }
+
+                        sw.Population = population;
+                        textTags.Add(sw.Population.ToString());
+                        textTagsAnchors.Add(sw.Sidewalk_Centroid);
+
                         //add to the global list of sidewalk instances
                         sidewalkInstances.Add(sw);
                     }
@@ -206,54 +250,55 @@ namespace Sidewalk_Evaluation
 
             if (sidewalkInstances.Count > 0)
             {
-                //if user inputs a number larger than a 100
-                if (capacityUtilization > 100)
-                    capacityUtilization = 100;
 
                 GH_Path path = new GH_Path(0); ;
 
                 for (int i=0; i<sidewalkInstances.Count; i++)
                 {
-                    
-
-                    Point3d[] pts;
-
-                    //modify the capacity based on default or user input percentage
-                    int population = Convert.ToInt32((capacityUtilization / 100) * (double)sidewalkInstances[i].Capacity);
-
-                    //if sidewalk has a subway then increase the population by the user defined multiplyer
-                    if(sidewalkInstances[i].HasSubway == true)
+                    if (sidewalkInstances[i].Population > 0)
                     {
-                        //clamp values between 1 and 2
-                        if (subwayInfluence < 1)
-                            subwayInfluence = 1;
-                        else if (subwayInfluence > 2)
-                            subwayInfluence = 2;
+                        sidewalksDataTree.Add(sidewalkInstances[i].Sidewalk_Curve, path);
 
-                        population = Convert.ToInt32((double)population * subwayInfluence);
+                        if (sidewalkInstances[i].IsROW == true) buildingsDataTree.AddRange(sidewalkInstances[i].Sidewalk_Buildings, path);
+                        else buildingsDataTree.Add(null, path);
+
+                        countsDataTree.Add(sidewalkInstances[i].Population, path);
+
+                        path = new GH_Path(countsDataTree.BranchCount);
                     }
 
-                    if(population > 0)
-                    {
-                        sidewalkInstances[i].Sidewalk_Curve.DivideByCount(population, false, out pts);      //divide sidewalk curve by number of population
-
-                        if (pts.Length > 0)
-                        {
-                            sidewalksDataTree.Add(sidewalkInstances[i].Sidewalk_Curve, path);              //add sidewalk curve to data tree once we're sure it has pedastrians
-
-                            for(int j =0; j<pts.Length; j++)
-                            {
-                                pedastriansDataTree.Add(pts[j], path);
-                            }
-
-                            path = new GH_Path(sidewalksDataTree.BranchCount);
-                        }
-                    }
                 }
             }
 
+
             DA.SetDataTree(0, sidewalksDataTree);
-            DA.SetDataTree(1, pedastriansDataTree);
+            DA.SetDataTree(1, buildingsDataTree);
+            DA.SetDataTree(2, countsDataTree);
+        }
+
+        protected override void BeforeSolveInstance()
+        {
+            textTags.Clear();
+            textTagsAnchors.Clear();
+
+            base.BeforeSolveInstance();
+        }
+
+        public override void DrawViewportMeshes(IGH_PreviewArgs args)
+        {
+            
+            for (int i = 0; i < textTags.Count; i++)
+            {
+
+                Plane plane;
+                args.Viewport.GetCameraFrame(out plane);
+                plane.Origin = textTagsAnchors[i];
+
+                double pixelsPerUnit;
+                args.Viewport.GetWorldToScreenScale(textTagsAnchors[i], out pixelsPerUnit);
+
+                args.Display.Draw3dText(textTags[i], tagsColor, plane, 25 / pixelsPerUnit, "Lucida Console");
+            }
         }
 
         /// <summary>

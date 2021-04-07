@@ -1,12 +1,13 @@
 ﻿using Rhino.Geometry;
-using Rhino;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Data;
+using Grasshopper.Kernel.Types;
+using Grasshopper;
 using System.Diagnostics;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Grasshopper;
+using Rhino.Display;
 
 namespace Sidewalk_Evaluation.Utility
 {
@@ -145,30 +146,6 @@ namespace Sidewalk_Evaluation.Utility
                     surf = tempSurf[0];
                 }
 
-                /*
-                Mesh[] meshArray = null;
-
-                MeshingParameters minimal = MeshingParameters.Minimal;
-
-                //build a mesh using the brep
-                for (int i = 0; i < tempSurf.Length; i++)
-                {
-                    meshArray = Mesh.CreateFromBrep(tempSurf[i], minimal);
-                }
-
-                //join meshes
-                if (meshArray.Length > 1)
-                {
-                    for (int i = 0; i < meshArray.Length; i++)
-                    {
-                        finalPlanarMesh.Append(meshArray[i]);
-                    }
-                }
-                else
-                {
-                    finalPlanarMesh = meshArray[0];
-                }
-                */
             }
 
            
@@ -177,7 +154,7 @@ namespace Sidewalk_Evaluation.Utility
         }
 
         /// <summary>
-        /// calcuate the area of a curve excluding the area of any interior curves
+        /// calcuate the area of a curve minus the area of any interior curves, and return its center
         /// </summary>
         /// <param name="outsideCurve"></param>
         /// <param name="insideCurves"></param>
@@ -187,7 +164,7 @@ namespace Sidewalk_Evaluation.Utility
             double insideAreas = 0;
             double outsideArea;
 
-            outsideArea= AreaMassProperties.Compute(outsideCurve).Area;
+            outsideArea = AreaMassProperties.Compute(outsideCurve).Area;
 
             for (int i = 0; i < insideCurves.Count; i++)
             {
@@ -205,11 +182,17 @@ namespace Sidewalk_Evaluation.Utility
         public static double CalculateArea(Curve curve)
         {
             return AreaMassProperties.Compute(curve).Area;
-        } 
+        }
 
-        public static Point3d ReturnCurveCentroid(Curve curve)
+
+        public static Point3d CalculateCentroid(Curve curve)
         {
-            return AreaMassProperties.Compute(curve).Centroid;
+            if(curve.IsClosed == true)
+            {
+                return AreaMassProperties.Compute(curve).Centroid;
+            }
+
+            return Point3d.Unset;
         }
         /// <summary>
         /// check if a curve is contained inside another
@@ -240,7 +223,6 @@ namespace Sidewalk_Evaluation.Utility
             return false;
         }
 
-
         public static bool InsideOrIntersecting(Curve outerCurve, Curve curveToCheck)
         {
 
@@ -249,52 +231,7 @@ namespace Sidewalk_Evaluation.Utility
                 return true;
 
             return false;
-
-
         }
-
-        public static List<Point3d> Repel(List<Point3d> pointToRepel, int iterationCount)
-        {
-
-            List<Point3d> centers = new List<Point3d>(pointToRepel);
-
-            for (int iteration = 0; iteration < iterationCount; iteration++)
-            {
-                List<Vector3d> totalMoves = new List<Vector3d>();
-                List<double> collisionCounts = new List<double>();
-
-                for (int i = 0; i < centers.Count; i++)
-                {
-                    totalMoves.Add(new Vector3d(0.0, 0.0, 0.0));
-                    collisionCounts.Add(0.0);
-                }
-
-                double collisionDistance = 3.0;
-
-                for (int i = 0; i < centers.Count; i++)
-                    for (int j = i + 1; j < centers.Count; j++)
-                    {
-                        double d = centers[i].DistanceTo(centers[j]);
-                        if (d > collisionDistance) continue;
-
-                        Vector3d move = centers[i] - centers[j];
-                        move.Unitize();
-                        move *= 0.5 * (collisionDistance - d);
-                        totalMoves[i] += move;
-                        totalMoves[j] -= move;
-                        collisionCounts[i] += 1.0;
-                        collisionCounts[j] += 1.0;
-                    }
-
-                for (int i = 0; i < centers.Count; i++)
-                    if (collisionCounts[i] != 0.0)
-                        centers[i] += totalMoves[i] / collisionCounts[i];
-            }
-
-            return centers;
-        }
-
-
 
     }
 }

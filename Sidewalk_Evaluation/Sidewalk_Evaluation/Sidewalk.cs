@@ -18,6 +18,11 @@ namespace Sidewalk_Evaluation
         public Curve Sidewalk_Curve { get; set; }
 
         /// <summary>
+        /// The center point of the sidewalk curve
+        /// </summary>
+        public Point3d Sidewalk_Centroid { get; set; }
+
+        /// <summary>
         /// Sidewalk building curves as a list
         /// </summary>
         public List<Curve> Sidewalk_Buildings { get; set; }
@@ -32,23 +37,35 @@ namespace Sidewalk_Evaluation
         /// </summary>
         public double Sidewalk_Area { get; set; }
 
+        /// <summary>
+        /// Indicates if any trees belong to this sidewalk
+        /// </summary>
         public bool HasTrees { get; set; }
+
         /// <summary>
         /// the sidewalk tree curves as a list (if any)
         /// </summary>
         public List<Curve> Sidewalk_Trees { get; set; }
 
+        /// <summary>
+        /// Indicates if this sidewalk has any subway entrances
+        /// </summary>
         public bool HasSubway { get; set; }
+
         /// <summary>
         /// the sidewalk subway point (if any)
         /// </summary>
-        public Point3d Sidewalk_Subway { get; set; }
+        public Curve Sidewalk_Subway { get; set; }
 
         /// <summary>
         /// The sidewalk estimated pedastrian capacity
         /// </summary>
         public int Capacity { get; set; }
 
+        /// <summary>
+        /// The current pedastrian population of the sidewalk
+        /// </summary>
+        public int Population { get; set; }
         /// <summary>
         ///The sidewalk pedastrian curves
         /// </summary>

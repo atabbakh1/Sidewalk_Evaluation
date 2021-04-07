@@ -75,7 +75,7 @@ namespace Sidewalk_Evaluation
                     {
                         if (GeometricOps.InsideOrIntersecting(regionCurve, sidewalkCurvesInput[i]))
                         {
-                            sidewalksOutput.Add(sidewalkCurvesInput[i]);
+                            sidewalksOutput.Add(Curve.ProjectToPlane(sidewalkCurvesInput[i], Plane.WorldXY));
                         }
                     }
 
@@ -95,13 +95,22 @@ namespace Sidewalk_Evaluation
                     {
                         if (GeometricOps.InsideOrIntersecting(regionCurve, joinedBuildings[i]))
                         {
-                            buildingsOutput.Add(joinedBuildings[i]);
+                            buildingsOutput.Add(Curve.ProjectToPlane(joinedBuildings[i], Plane.WorldXY));
                         }
                     }
                 }
             }
 
-           
+            if(buildingsOutput.Count > 0)
+            {
+                buildingsOutput = Curve.CreateBooleanUnion(buildingsOutput, 0.1).ToList();      //boolean buildings again to get rid of interior courts
+            }
+
+            if (sidewalksOutput.Count > 0)
+            {
+                sidewalksOutput = Curve.CreateBooleanUnion(sidewalksOutput, 0.1).ToList();      //handle pathways within larger sidewalks for now (needs to be modified)
+            }
+
             DA.SetDataList(0, sidewalksOutput);
             DA.SetDataList(1, buildingsOutput);
         }
