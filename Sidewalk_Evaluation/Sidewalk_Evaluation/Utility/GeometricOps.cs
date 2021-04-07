@@ -1,13 +1,6 @@
 ﻿using Rhino.Geometry;
-using Grasshopper.Kernel;
-using Grasshopper.Kernel.Data;
-using Grasshopper.Kernel.Types;
-using Grasshopper;
 using System.Diagnostics;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using Rhino.Display;
 
 namespace Sidewalk_Evaluation.Utility
 {
@@ -105,55 +98,6 @@ namespace Sidewalk_Evaluation.Utility
         }
 
         /// <summary>
-        /// validate and rebuild a list of curves 
-        /// </summary>
-        /// <param name="targetCurves">curves to clean</param>
-        /// <returns></returns>
-        public static List<Curve> CleanCurves(List<Curve> targetCurves)
-        {
-            List<Curve> cleanedCurves = new List<Curve>();
-
-            if (targetCurves != null && targetCurves.Count > 0)
-            {
-                for (int i = 0; i < targetCurves.Count; i++)
-                {
-                    if (ValidateCurve(targetCurves[i]) == true)
-                        cleanedCurves.Add(RebuildCurve(targetCurves[i]));
-                }
-
-            }
-
-            return cleanedCurves;
-        }
-
-        /// <summary>
-        /// Creates a planar mesh using a set of closed curves
-        /// </summary>
-        /// <param name="inputClosedCurves">closed curves for mesh creation</param>
-        /// <returns></returns>
-        public static Brep CreatePlanarMesh(List<Curve> inputClosedCurves)
-        {
-            Mesh finalPlanarMesh = new Mesh();
-
-            Brep surf = new Brep();
-            if(inputClosedCurves != null && inputClosedCurves.Count > 0)
-            {
-                //create a brep planar surface using the input curves
-                Brep[] tempSurf = Brep.CreatePlanarBreps(inputClosedCurves, 0.1);
-
-                if(tempSurf.Length > 0)
-                {
-                    surf = tempSurf[0];
-                }
-
-            }
-
-           
-
-            return surf;
-        }
-
-        /// <summary>
         /// calcuate the area of a curve minus the area of any interior curves, and return its center
         /// </summary>
         /// <param name="outsideCurve"></param>
@@ -184,7 +128,11 @@ namespace Sidewalk_Evaluation.Utility
             return AreaMassProperties.Compute(curve).Area;
         }
 
-
+        /// <summary>
+        /// calculate the centroid of a closed curve
+        /// </summary>
+        /// <param name="curve"></param>
+        /// <returns></returns>
         public static Point3d CalculateCentroid(Curve curve)
         {
             if(curve.IsClosed == true)
@@ -194,6 +142,8 @@ namespace Sidewalk_Evaluation.Utility
 
             return Point3d.Unset;
         }
+
+
         /// <summary>
         /// check if a curve is contained inside another
         /// </summary>
@@ -210,7 +160,7 @@ namespace Sidewalk_Evaluation.Utility
         }
 
         /// <summary>
-        /// check if a curves are intersecting
+        /// check if curves are intersecting
         /// </summary>
         /// <param name="outerCurve"></param>
         /// <param name="curveToCheck"></param>
@@ -223,6 +173,12 @@ namespace Sidewalk_Evaluation.Utility
             return false;
         }
 
+        /// <summary>
+        /// check if curves are eithe contained or intersecting
+        /// </summary>
+        /// <param name="outerCurve"></param>
+        /// <param name="curveToCheck"></param>
+        /// <returns></returns>
         public static bool InsideOrIntersecting(Curve outerCurve, Curve curveToCheck)
         {
 

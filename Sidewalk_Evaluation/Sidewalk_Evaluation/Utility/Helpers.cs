@@ -1,9 +1,6 @@
-﻿
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 
 namespace Sidewalk_Evaluation.Utility
 {
@@ -43,5 +40,6 @@ namespace Sidewalk_Evaluation.Utility
             }
             return filteredLines.ToArray();
         }
+
     }
 }

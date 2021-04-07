@@ -1,12 +1,8 @@
 ﻿using Grasshopper.Kernel;
-using Grasshopper.Kernel.Data;
-using Grasshopper.Kernel.Types;
 using Rhino.Geometry;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Rhino.Geometry.Intersect;
-using System.Diagnostics;
 using Sidewalk_Evaluation.Utility;
 
 
