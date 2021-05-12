@@ -25,6 +25,7 @@ To use this plugin copy the *Sidewalk_Evaluation.gha* file from the *Testing* fo
 - Boolean union nested sidewalk instances (this might need to be revised)
 
 If users are confident their input sidewalk/building curves satisfy the above requirements, they can feel free to skip this step.
+
 ![Screenshot](https://github.com/atabbakh1/Sidewalk_Evaluation/blob/2b0d46ec1a3a7fcc92f7d8ca257cc9d5f24d03ed/Sidewalk_Evaluation/Documentation/Prepare_Component.png)
 
   ## Evaluate
@@ -36,6 +37,7 @@ This component currently outputs three trees with equal branch count representin
   - Counts data tree
 
 Evaluate component will draw a preview of the sidewalk outlines in the Rhino viewport in addition to displaying the population values for each instance using user defined colors.
+
 ![Screenshot](https://github.com/atabbakh1/Sidewalk_Evaluation/blob/2b0d46ec1a3a7fcc92f7d8ca257cc9d5f24d03ed/Sidewalk_Evaluation/Documentation/Evaluate_Component.png)
 
 </details>
