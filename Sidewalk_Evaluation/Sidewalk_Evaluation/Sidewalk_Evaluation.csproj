@@ -56,7 +56,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Componenet_PrepSidewalks.cs" />
+    <Compile Include="Component_PrepSidewalks.cs" />
     <Compile Include="Component_Evaluate.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>

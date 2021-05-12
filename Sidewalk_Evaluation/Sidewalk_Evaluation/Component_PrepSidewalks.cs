@@ -8,12 +8,12 @@ using Sidewalk_Evaluation.Utility;
 
 namespace Sidewalk_Evaluation
 {
-    public class Componenet_PrepSidewalks : GH_Component
+    public class Component_PrepSidewalks : GH_Component
     {
         /// <summary>
         /// Initializes a new instance of the Componenet_PrepSidewalks class.
         /// </summary>
-        public Componenet_PrepSidewalks()
+        public Component_PrepSidewalks()
           : base("Prepare Sidewalks", "PSW",
               "Create sidewalk instances for evaluation from a set of curves. Sidewalks are organized into ROW (Right-OF-Way) sidewalks and Interior sidewalks.",
               "SidewalkEval", "Util")
