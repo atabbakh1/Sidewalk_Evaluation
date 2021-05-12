@@ -2,9 +2,12 @@
 ##Evaluate sidewalk human traffic based on site factors
 
 ![Screenshot](https://github.com/atabbakh1/Sidewalk_Evaluation/blob/master/Sidewalk_Evaluation/Documentation/Capture.jpg)
-
+This plugin is a WIP.
 Evaluating the potential population of sidewalks in an urban contexts - such as NYC - involves numerous factor in which some of them can be unpredictable. This plugin provides a close estimation of population numbers - per sidewalk instance - based on certain requirements that may exist in the region of interest.
 
+
+##How to use:
+To use this plugin copy the *Sidewalk_Evaluation.gha* file from the *Testing* folder to your Grasshopper component folder.
 <details>
   
   <summary>Components</summary>
