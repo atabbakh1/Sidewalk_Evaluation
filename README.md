@@ -10,6 +10,7 @@ To use this plugin copy the *Sidewalk_Evaluation.gha* file from the *Testing* fo
 
 <details>
   <summary>Components</summary>
+  
   ## NYC Trees
   The Trees component takes care of parsing the CSV data provided. Users only need to specify the location of the file, and the corresponding data columns for X, Y, DBH, and     Borough. Trees will be loaded only for the specified NYC borough to reduce processing time needed.
   
