@@ -1,6 +1,8 @@
 # Sidewalk_Evaluation
 ## Evaluate sidewalk human traffic based on site factors
 This plugin is a WIP.
+The plugin's development is currently based off of the [NYC Rhino 3D Model](https://www1.nyc.gov/site/planning/data-maps/open-data/dwn-nyc-3d-model-download.page). Additionally it offers optional use of the [NYC Tree Census Data Set](https://data.cityofnewyork.us/Environment/2015-Street-Tree-Census-Tree-Data/uvpi-gqnh)
+
 ![Screenshot](https://github.com/atabbakh1/Sidewalk_Evaluation/blob/2b0d46ec1a3a7fcc92f7d8ca257cc9d5f24d03ed/Sidewalk_Evaluation/Documentation/Capture.JPG)
 Evaluating the potential population of sidewalks in an urban contexts - such as NYC - involves numerous factor in which some of them can be unpredictable. This plugin provides a close estimation of population numbers - per sidewalk instance - based on certain requirements that may exist in the region of interest.
 
